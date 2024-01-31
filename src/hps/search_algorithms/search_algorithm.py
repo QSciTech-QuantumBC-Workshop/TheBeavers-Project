@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Union, Tuple, Dict, Any, Type, Optional, List
+from ..search_space import SearchSpace
 
 
 class TrialPoint:
@@ -22,7 +23,7 @@ class SearchAlgorithm:
     r"""Base class for search algorithms.
 
     :param search_space: The search space to use for searching the best hyperparameters.
-    :type search_space: Dict[str, Any]
+    :type search_space: Optional[SearchSpace]
     :param config: Additional configuration parameters.
     :type config: Any
 
@@ -30,16 +31,16 @@ class SearchAlgorithm:
     :ivar config: Additional configuration parameters.
     :ivar history: The history of the search algorithm.
     """
-    def __init__(self, search_space: Optional[Dict[str, Any]] = None, **config):
+    def __init__(self, search_space: Optional[SearchSpace] = None, **config):
         self.search_space = search_space
         self.config = config
         self.history: List[TrialPoint] = []
 
-    def set_search_space(self, search_space: Dict[str, Any]):
+    def set_search_space(self, search_space: SearchSpace):
         r"""Set the search space to use for searching the best hyperparameters.
 
         :param search_space: The search space to use for searching the best hyperparameters.
-        :type search_space: Dict[str, Any]
+        :type search_space: SearchSpace
         """
         self.search_space = search_space
 

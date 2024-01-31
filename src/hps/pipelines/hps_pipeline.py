@@ -3,6 +3,7 @@ from typing import Union, Tuple, Dict, Any, Type, Optional
 from .base_pipeline import BasePipeline, PipelineRunOutput
 from .ml_pipeline import MLPipeline
 from ..search_algorithms.search_algorithm import SearchAlgorithm, TrialPoint
+from ..search_space import SearchSpace
 
 
 class HpSearchPipeline(BasePipeline):
@@ -16,7 +17,7 @@ class HpSearchPipeline(BasePipeline):
     :param ml_pipeline_cls: The machine learning pipeline class to use for the search.
     :type ml_pipeline_cls: Type[MLPipeline]
     :param search_space: The search space to use for the hyperparameter search.
-    :type search_space: Dict[str, Any]
+    :type search_space: Optional[SearchSpace]
     :param search_algorithm: The search algorithm to use for the hyperparameter search.
     :type search_algorithm: SearchAlgorithm
     :param ml_pipeline_config: Additional configuration parameters for the machine learning pipeline.
@@ -38,7 +39,7 @@ class HpSearchPipeline(BasePipeline):
             search_algorithm: SearchAlgorithm,
             *,
             ml_pipeline_config: Optional[Dict[str, Any]] = None,
-            search_space: Optional[Dict[str, Any]] = None,
+            search_space: Optional[SearchSpace] = None,
             **config
     ):
         super().__init__(**config)
@@ -66,9 +67,6 @@ class HpSearchPipeline(BasePipeline):
             **self.ml_pipeline_config,
         )
 
-    def make_search_space(self) -> Dict[str, Any]:
-        raise NotImplementedError
-
     def search_hyperparameters(self) -> Dict[str, Any]:
         if self.search_space is not None:
             self.search_algorithm.set_search_space(self.search_space)
@@ -85,8 +83,6 @@ class HpSearchPipeline(BasePipeline):
     def run(self, **kwargs) -> PipelineRunOutput:
         dataset = self.maybe_load_dataset(self.dataset)
         dataset = self.preprocess_dataset(dataset)
-        self.search_space = self.make_search_space()
-        self.search_algorithm = self.make_search_algorithm()
         best_hyperparameters = self.search_hyperparameters(dataset)
         ml_pipeline = self.make_ml_pipeline(best_hyperparameters)
         return PipelineRunOutput(
