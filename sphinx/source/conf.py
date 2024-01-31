@@ -9,7 +9,7 @@ import sys
 import shutil
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 sys.path.insert(0, basedir)
-import pkg
+import hps
 
 
 _html_folders_formatted = {}
@@ -62,9 +62,9 @@ def move_private_folders(app, e):
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = '<PackgaeName>'
-copyright = pkg.__copyright__.replace("Copyright ", "")
-author = pkg.__author__
-version = pkg.__version__
+copyright = hps.__copyright__.replace("Copyright ", "")
+author = hps.__author__
+version = hps.__version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
