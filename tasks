@@ -1,8 +1,8 @@
 
 Tasks:
-1. A classical Ml pipeline with a simple MLP and the Iris Dataset: (Gince)
+1. A classical Ml pipeline with a simple MLP and the Digits Dataset: (Gince) -> Done
 2. A QSVR model as the first SearchAlgorithm: (Sareh, Ravi, Gince)
 3. the poster (Sareh)
 4. The scripts for generating the figures: (Gince)
 5. A Quantum Ml pipeline with iris dataset [optional]: ()
-6. A classical SearchAlgorithm: (Gince)
+6. A classical SearchAlgorithm: (Gince) -> Done
