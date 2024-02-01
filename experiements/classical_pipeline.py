@@ -73,7 +73,7 @@ class GPSearchAlgorithm(hps.SearchAlgorithm):
 
 
 if __name__ == '__main__':
-    x, y = datasets.load_breast_cancer(return_X_y=True)
+    x, y = datasets.load_digits(return_X_y=True)
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
     pipeline = hps.HpSearchPipeline(
         dataset=(x_train, y_train),
