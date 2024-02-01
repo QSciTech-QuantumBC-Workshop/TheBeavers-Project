@@ -34,7 +34,7 @@ class MLPipeline(BasePipeline):
     def run(self, **kwargs) -> PipelineRunOutput:
         raise NotImplementedError
 
-    def get_score(self) -> float:
+    def get_score(self, test_x, text_y, **kwargs) -> float:
         raise NotImplementedError
 
 

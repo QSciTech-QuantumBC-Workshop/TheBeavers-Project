@@ -18,6 +18,9 @@ class TrialPoint:
         self.point = point
         self.value = value
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(point={self.point}, value={self.value})"
+
 
 class SearchAlgorithm:
     r"""Base class for search algorithms.
@@ -32,7 +35,7 @@ class SearchAlgorithm:
     :ivar history: The history of the search algorithm.
     """
     def __init__(self, search_space: Optional[SearchSpace] = None, **config):
-        self.search_space = search_space
+        self.search_space: SearchSpace = search_space
         self.config = config
         self.history: List[TrialPoint] = []
 
@@ -42,7 +45,7 @@ class SearchAlgorithm:
         :param search_space: The search space to use for searching the best hyperparameters.
         :type search_space: SearchSpace
         """
-        self.search_space = search_space
+        self.search_space: SearchSpace = search_space
 
     def get_next_trial_point(self) -> TrialPoint:
         r"""Get the next trial point in the search space.
@@ -53,3 +56,11 @@ class SearchAlgorithm:
 
     def update(self, trial_point: TrialPoint):
         self.history.append(trial_point)
+
+    def get_best_point(self) -> TrialPoint:
+        r"""Get the best point in the search space.
+
+        :return: The best point in the search space.
+        """
+        return max(self.history, key=lambda tp: tp.value)
+

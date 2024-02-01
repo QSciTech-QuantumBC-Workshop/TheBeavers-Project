@@ -4,7 +4,7 @@ pythonpath = [
 ]
 addopts = [
     "--cov=src",
-    "--no-cov",
+#    "--no-cov",
     "--durations=10",
 ]
 
@@ -22,7 +22,7 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "<PackageName>"
+name = "hps"
 dynamic = ["version", ]
 description = ""
 authors = [

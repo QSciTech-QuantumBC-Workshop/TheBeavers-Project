@@ -61,7 +61,7 @@ def move_private_folders(app, e):
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = '<PackgaeName>'
+project = 'hps'
 copyright = hps.__copyright__.replace("Copyright ", "")
 author = hps.__author__
 version = hps.__version__

@@ -2,7 +2,7 @@ from setuptools import setup
 import setuptools
 
 setup(
-    name='MSim',
+    name='hps',
     long_description='file: README.md',
     long_description_content_type="text/markdown",
     package_dir={"": "src"},
@@ -20,9 +20,9 @@ setup(
         "Operating System :: OS Independent",
     ],
     project_urls={
-        'Homepage': 'https://github.com/JeremieGince/<project_name>',
-        'Source': 'https://github.com/JeremieGince/<project_name>',
-        'Documentation': 'https://JeremieGince.github.io/<project_name>',
+        'Homepage': 'https://github.com/QSciTech-QuantumBC-Workshop/TheBeavers-Project',
+        'Source': 'https://github.com/QSciTech-QuantumBC-Workshop/TheBeavers-Project',
+        'Documentation': 'https://github.com/QSciTech-QuantumBC-Workshop/TheBeavers-Project',
     },
 )
 
