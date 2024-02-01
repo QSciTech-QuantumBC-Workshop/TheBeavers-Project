@@ -22,7 +22,7 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "<PackageName>"
+name = "hps"
 dynamic = ["version", ]
 description = ""
 authors = [
