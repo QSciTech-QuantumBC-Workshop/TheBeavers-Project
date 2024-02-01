@@ -16,4 +16,4 @@ warnings.filterwarnings("ignore", category=Warning, module="sphinx")
 
 from .pipelines import HpSearchPipeline, MLPipeline, PipelineRunOutput
 from .search_space import SearchSpace, Dimension, Real, Integer, Categorical
-from .search_algorithms import SearchAlgorithm, RandomSearchAlgorithm, TrialPoint
+from .search_algorithms import SearchAlgorithm, RandomSearchAlgorithm, TrialPoint, GPSearchAlgorithm

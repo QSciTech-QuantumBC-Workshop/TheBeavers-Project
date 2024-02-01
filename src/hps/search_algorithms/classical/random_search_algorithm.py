@@ -1,8 +1,7 @@
 from typing import Optional
 
-import numpy as np
-from .search_algorithm import SearchAlgorithm, TrialPoint
-from ..search_space import SearchSpace
+from ..search_algorithm import SearchAlgorithm, TrialPoint
+from ...search_space import SearchSpace
 
 
 class RandomSearchAlgorithm(SearchAlgorithm):
