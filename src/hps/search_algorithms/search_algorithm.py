@@ -22,6 +22,53 @@ class TrialPoint:
         return f"{self.__class__.__name__}(point={self.point}, value={self.value})"
 
 
+class SearchHistory:
+    r"""Class representing the history of the search algorithm.
+
+    :ivar history: The history of the search algorithm.
+    """
+    def __init__(self):
+        self.history: List[TrialPoint] = []
+
+    @property
+    def points(self):
+        return [tp.point for tp in self.history]
+
+    @property
+    def values(self):
+        return [tp.value for tp in self.history]
+
+    def get_ordered_points(self, order: List[str]) -> List[List[Any]]:
+        """
+        Get the points where the keys are ordered according to the order list.
+
+        :param order: The order of the keys.
+        :type order: List[str]
+        :return: The points where the keys are ordered according to the order list.
+        :rtype: List[List[Any]]
+        """
+        return [[point[key] for key in order] for point in self.points]
+
+    def update(self, trial_point: TrialPoint):
+        self.history.append(trial_point)
+
+    def append(self, trial_point: TrialPoint):
+        self.update(trial_point)
+
+    def __getitem__(self, item):
+        return self.history[item]
+
+    def __len__(self):
+        return len(self.history)
+
+    def get_best_point(self) -> TrialPoint:
+        r"""Get the best point in the search space.
+
+        :return: The best point in the search space.
+        """
+        return max(self.history, key=lambda tp: tp.value)
+
+
 class SearchAlgorithm:
     r"""Base class for search algorithms.
 
@@ -37,7 +84,7 @@ class SearchAlgorithm:
     def __init__(self, search_space: Optional[SearchSpace] = None, **config):
         self.search_space: SearchSpace = search_space
         self.config = config
-        self.history: List[TrialPoint] = []
+        self.history: SearchHistory = SearchHistory()
 
     def set_search_space(self, search_space: SearchSpace):
         r"""Set the search space to use for searching the best hyperparameters.
@@ -62,5 +109,25 @@ class SearchAlgorithm:
 
         :return: The best point in the search space.
         """
-        return max(self.history, key=lambda tp: tp.value)
+        return self.history.get_best_point()
+
+    def make_x_y_from_history(self) -> Tuple[np.ndarray, np.ndarray]:
+        r"""
+        Make X and Y from the history of the search algorithm. X is the points in the search space and Y is the values
+        of the points in the search space.
+
+        :return: A tuple containing X and Y.
+        """
+        x = self.search_space.points_to_linear(self.history.get_ordered_points(self.search_space.keys))
+        y = np.array(self.history.values)
+        return x, y
+
+    def make_hp_from_x(self, x) -> dict:
+        r"""
+        Make a hyperparameter dictionary from a point in the search space.
+        """
+        return {
+            key: value
+            for key, value in zip(self.search_space.keys, x)
+        }
 

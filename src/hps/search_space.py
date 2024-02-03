@@ -21,6 +21,12 @@ class Dimension:
     def get_linear(self, x: float):
         raise NotImplementedError
 
+    def to_linear(self, value: Any) -> float:
+        raise NotImplementedError
+
+    def from_linear(self, value: float) -> Any:
+        return self.get_linear(value)
+
     def to_numeric(self, value: Any) -> float:
         r"""Convert the value to a numeric representation.
 
@@ -70,6 +76,16 @@ class Real(Dimension):
         :return: The interpolated value.
         """
         return self.low + (self.high - self.low) * x
+
+    def to_linear(self, value: float) -> float:
+        """
+        Linearly interpolate between the bounds.
+
+        :param value: The value to interpolate.
+        :type value: float
+        :return: The interpolated value.
+        """
+        return (value - self.low) / (self.high - self.low)
 
     def to_numeric(self, value: float) -> float:
         r"""Convert the value to a numeric representation.
@@ -121,6 +137,16 @@ class Integer(Dimension):
         """
         return int(self.low + (self.high - self.low) * x)
 
+    def to_linear(self, value: int) -> float:
+        """
+        Linearly interpolate between the bounds.
+
+        :param value: The value to interpolate.
+        :type value: int
+        :return: The interpolated value.
+        """
+        return (value - self.low) / (self.high - self.low)
+
     def to_numeric(self, value: int) -> float:
         r"""Convert the value to a numeric representation.
 
@@ -168,6 +194,16 @@ class Categorical(Dimension):
         """
         return self.values[int(x * (len(self.values) - 1))]
 
+    def to_linear(self, value: Any) -> float:
+        """
+        Linearly interpolate between the bounds.
+
+        :param value: The value to interpolate.
+        :type value: Any
+        :return: The interpolated value.
+        """
+        return self.values.index(value) / (len(self.values) - 1)
+
     def to_numeric(self, value: Any) -> float:
         r"""Convert the value to a numeric representation.
 
@@ -211,6 +247,7 @@ class SearchSpace:
         )
 
         self._keys = list(self._space.keys())
+        self.reducers = {}
 
     @property
     def dimensions(self):
@@ -249,6 +286,30 @@ class SearchSpace:
             for k, v in zip(self.keys, point)
         ])
 
+    def point_to_linear(self, point: List[Any]) -> np.ndarray:
+        r"""Convert the point to a linear representation.
+
+        :param point: The point to convert to a linear representation.
+        :type point: List[Any]
+        :return: The linear representation of the point.
+        """
+        return np.array([
+            self._space[k].to_linear(v)
+            for k, v in zip(self.keys, point)
+        ])
+
+    def point_from_linear(self, point: np.ndarray) -> List[Any]:
+        r"""Convert the point to a linear representation.
+
+        :param point: The point to convert to a linear representation.
+        :type point: List[Any]
+        :return: The linear representation of the point.
+        """
+        return [
+            self._space[k].from_linear(v)
+            for k, v in zip(self.keys, point)
+        ]
+
     def points_to_numeric(self, points: List[List[Any]]) -> np.ndarray:
         r"""Convert the points to a numeric representation.
 
@@ -284,3 +345,63 @@ class SearchSpace:
             self.point_from_numeric(point)
             for point in points
         ]
+
+    def points_to_linear(self, points: List[List[Any]]) -> np.ndarray:
+        r"""Convert the points to a linear representation.
+
+        :param points: The points to convert to a linear representation.
+        :type points: np.ndarray
+        :return: The linear representation of the points.
+        """
+        return np.stack([self.point_to_linear(point) for point in points], axis=0)
+
+    def points_from_linear(self, points: List[List[float]]) -> List[List[Any]]:
+        r"""Convert the points to a linear representation.
+
+        :param points: The points to convert to a linear representation.
+        :type points: List[List[float]]
+        :return: The linear representation of the points.
+        """
+        return [self.point_from_linear(point) for point in points]
+
+    def fit_reducer(self, x: np.ndarray, k: int = 2):
+        reducer = self.get_reducer(k)
+        reducer.fit(x)
+        return reducer
+
+    def get_reducer(self, k: int = 2):
+        import umap
+        k = max(2, k)
+        reducer = self.reducers.get(k, umap.UMAP(n_components=k))
+        self.reducers[k] = reducer
+        return reducer
+
+    def reducer_transform(self, x: np.ndarray, k: int = 2):
+        reducer = self.get_reducer(k)
+        if k == 1:
+            return reducer.transform(x)[:, 0]
+        return reducer.transform(x)
+
+    def points_to_kd_linear(
+            self,
+            points: List[Any],
+            k: int = 2,
+            skip_if_k_eq_dim: bool = True,
+            fit_reducer: bool = False,
+    ) -> List[float]:
+        r"""Convert the points to a linear representation of a k-dimensional space.
+        The dimensionality of the initial space is reduced using UMAP.
+
+        :param points: The points to convert to a linear representation.
+        :type points: List[Any]
+        :param k: The number of dimensions to use.
+        :type k: int
+        :return: The linear representation of the points.
+        """
+        initial_space = np.asarray(self.points_to_linear(points))
+        if skip_if_k_eq_dim and k == len(self.dimensions):
+            return initial_space
+        if fit_reducer:
+            self.fit_reducer(initial_space, k)
+        return self.reducer_transform(initial_space, k)
+
