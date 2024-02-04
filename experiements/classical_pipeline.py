@@ -33,23 +33,25 @@ class MlpPipeline(hps.MLPipeline):
 
 
 if __name__ == '__main__':
-    x, y = datasets.fetch_olivetti_faces(return_X_y=True)
+    # x, y = datasets.fetch_olivetti_faces(return_X_y=True)
+    x, y, *_ = datasets.make_multilabel_classification()
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
     pipeline = hps.HpSearchPipeline(
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=MlpPipeline,
-        search_algorithm=hps.GPSearchAlgorithm(),
+        search_algorithm=hps.GPSearchAlgorithm(warmup_trials=2, space_quantization=1_000),
         search_space=hps.SearchSpace(
-            hps.Real("learning_rate_init", 1e-4, 1e-1),
-            hps.Integer("hidden_layer_size", 8, 512),
+            # hps.Real("learning_rate_init", 1e-4, 1e-1),
+            hps.Integer("hidden_layer_size", 8, 2048),
             hps.Integer("n_hidden_layer", 1, 10),
-            hps.Categorical("learning_rate", ['constant', 'invscaling', 'adaptive']),
+            # hps.Categorical("learning_rate", ['constant', 'invscaling', 'adaptive']),
+            hps.Categorical("activation", ['identity', 'logistic', 'tanh', 'relu']),
         ),
-        n_trials=20,
+        n_trials=100,
     )
     out = pipeline.run()
-    # pipeline.plot_score_history(show=True)
+    pipeline.plot_score_history(show=True)
     # pipeline.plot_hyperparameters_search(show=True)
     print(out.best_hyperparameters)
     pipeline.search_algorithm.plot_expected_improvement()

@@ -14,12 +14,18 @@ class TrialPoint:
     :ivar point: The point in the search space.
     :ivar value: The value of the point in the search space.
     """
-    def __init__(self, point: Dict[str, Any], value: Optional[Any] = None):
+    def __init__(
+            self,
+            point: Dict[str, Any],
+            value: Optional[Any] = None,
+            pred_value: Optional[Any] = None
+    ):
         self.point = point
         self.value = value
+        self.pred_value = pred_value
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(point={self.point}, value={self.value})"
+        return f"{self.__class__.__name__}(point={self.point}, value={self.value}, pred_value={self.pred_value})"
 
 
 class SearchHistory:
@@ -67,6 +73,13 @@ class SearchHistory:
         :return: The best point in the search space.
         """
         return max(self.history, key=lambda tp: tp.value)
+
+    def get_pred_best_point(self) -> TrialPoint:
+        r"""Get the best point in the search space.
+
+        :return: The best point in the search space.
+        """
+        return max(self.history, key=lambda tp: tp.pred_value)
 
 
 class SearchAlgorithm:

@@ -17,7 +17,20 @@ from ...search_algorithms import GPSearchAlgorithm
 
 
 class QiskitKernel(StationaryKernelMixin, NormalizedKernelMixin, Kernel):
-    pass
+    def __init__(self, feature_dimension):
+        super().__init__()
+        self.feature_dimension = feature_dimension
+        adhoc_feature_map = ZZFeatureMap(
+            feature_dimension=feature_dimension,
+            reps=2,
+            entanglement="linear",
+        )
+        sampler = Sampler()
+        fidelity = ComputeUncompute(sampler=sampler)
+        self.adhoc_kernel = FidelityQuantumKernel(fidelity=fidelity, feature_map=adhoc_feature_map)
+
+    def __call__(self, X, Y=None, eval_gradient=False):
+        return self.adhoc_kernel.evaluate(x_vec=X, y_vec=Y)
 
 
 class QGPSearchAlgorithm(GPSearchAlgorithm):
@@ -26,15 +39,15 @@ class QGPSearchAlgorithm(GPSearchAlgorithm):
         self.model = None
 
     def make_model(self):
-        adhoc_feature_map = ZZFeatureMap(
-            feature_dimension=len(self.search_space.dimensions),
-            reps=2,
-            entanglement="linear",
-        )
-        sampler = Sampler()
-        fidelity = ComputeUncompute(sampler=sampler)
-        adhoc_kernel = FidelityQuantumKernel(fidelity=fidelity, feature_map=adhoc_feature_map)
-        self.model = GaussianProcessRegressor(kernel=adhoc_kernel)
+        # adhoc_feature_map = ZZFeatureMap(
+        #     feature_dimension=len(self.search_space.dimensions),
+        #     reps=2,
+        #     entanglement="linear",
+        # )
+        # sampler = Sampler()
+        # fidelity = ComputeUncompute(sampler=sampler)
+        # adhoc_kernel = FidelityQuantumKernel(fidelity=fidelity, feature_map=adhoc_feature_map)
+        self.model = GaussianProcessRegressor(kernel=QiskitKernel(feature_dimension=len(self.search_space.dimensions)))
 
     def get_next_trial_point(self) -> TrialPoint:
         if self.model is None:

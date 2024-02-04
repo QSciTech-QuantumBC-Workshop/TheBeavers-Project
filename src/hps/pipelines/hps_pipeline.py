@@ -85,17 +85,19 @@ class HpSearchPipeline(BasePipeline):
             ml_pipeline.run(dataset=self.dataset, i=i, n_trials=n_trials)
             trial_point.value = ml_pipeline.get_score(*self.test_dataset)
             self.search_algorithm.update(trial_point)
-            p_bar.set_postfix(best_score=self.search_algorithm.get_best_point().value)
+            h_best_score = self.search_algorithm.history.get_best_point().value
+            pred_best_score = self.search_algorithm.history.get_best_point().pred_value
+            p_bar.set_postfix(best_score=h_best_score, pred_best_score=pred_best_score)
         return self.search_algorithm.get_best_point()
 
     def run(self, **kwargs) -> PipelineRunOutput:
-        # dataset = self.maybe_load_dataset(self.dataset)
-        # dataset = self.preprocess_dataset(dataset)
         best_hyperparameters = self.search_hyperparameters()
         ml_pipeline = self.make_ml_pipeline(best_hyperparameters.point)
+        ml_pipeline.run(dataset=self.dataset, **kwargs)
+        best_hyperparameters.value = ml_pipeline.get_score(*self.test_dataset)
         return PipelineRunOutput(
             best_ml_pipeline=ml_pipeline,
-            best_hyperparameters=best_hyperparameters
+            best_hyperparameters=best_hyperparameters,
         )
 
     def plot_score_history(
