@@ -119,9 +119,10 @@ if __name__ == '__main__':
         search_algorithm=hps.QGPSearchAlgorithm(warmup_trials=2),
         search_space=hps.SearchSpace(
             # hps.Real("learning_rate_init", 1e-4, 1e-1),
-            hps.Integer("hidden_layer_size", 8, 512),
+            hps.Integer("hidden_layer_size", 8, 2048),
             hps.Integer("n_hidden_layer", 1, 10),
             # hps.Categorical("learning_rate", ['constant', 'invscaling', 'adaptive']),
+            # hps.Categorical("activation", ['identity', 'logistic', 'tanh', 'relu']),
         ),
         n_trials=100,
     )
