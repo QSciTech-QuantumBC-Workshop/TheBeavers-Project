@@ -74,24 +74,25 @@ class HpSearchPipeline(BasePipeline):
             **self.ml_pipeline_config,
         )
 
-    def search_hyperparameters(self) -> TrialPoint:
+    def search_hyperparameters(self, **kwargs) -> TrialPoint:
         if self.search_space is not None:
             self.search_algorithm.set_search_space(self.search_space)
         n_trials = self.config.get('n_trials', 10)
-        p_bar = tqdm(range(n_trials), desc="Hyperparameter search")
+        initial_length = len(self.search_algorithm.history)
+        n_trials_todo = max(n_trials - initial_length, 0)
+        p_bar = tqdm(range(n_trials_todo), desc=kwargs.get("desc", "Hyperparameter search"))
         for i in p_bar:
             trial_point = self.search_algorithm.get_next_trial_point()
             ml_pipeline = self.make_ml_pipeline(trial_point.point)
-            ml_pipeline.run(dataset=self.dataset, i=i, n_trials=n_trials)
+            ml_pipeline.run(dataset=self.dataset, i=i+initial_length, n_trials=n_trials)
             trial_point.value = ml_pipeline.get_score(*self.test_dataset)
             self.search_algorithm.update(trial_point)
             h_best_score = self.search_algorithm.history.get_best_point().value
-            pred_best_score = self.search_algorithm.history.get_best_point().pred_value
-            p_bar.set_postfix(best_score=h_best_score, pred_best_score=pred_best_score)
+            p_bar.set_postfix(best_score=h_best_score, pred_best_score=trial_point.best_pred_value)
         return self.search_algorithm.get_best_point()
 
     def run(self, **kwargs) -> PipelineRunOutput:
-        best_hyperparameters = self.search_hyperparameters()
+        best_hyperparameters = self.search_hyperparameters(**kwargs)
         ml_pipeline = self.make_ml_pipeline(best_hyperparameters.point)
         ml_pipeline.run(dataset=self.dataset, **kwargs)
         best_hyperparameters.value = ml_pipeline.get_score(*self.test_dataset)
@@ -111,9 +112,13 @@ class HpSearchPipeline(BasePipeline):
         y = [float(point.value) for point in history]
         if fig is None or ax is None:
             fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=kwargs.get("figsize", (14, 10)))
-        ax.plot(x, y)
+        ax.plot(x, y, color=kwargs.get("color", "blue"))
         ax.set_xlabel("Iteration [-]")
         ax.set_ylabel("Score [-]")
+        filename = kwargs.get("filename", None)
+        if filename is not None:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            plt.savefig(filename)
         if kwargs.get("show", True):
             plt.show()
         return fig, ax

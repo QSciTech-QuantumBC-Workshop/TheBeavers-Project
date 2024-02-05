@@ -20,7 +20,8 @@ from .search_algorithms import (
     SearchAlgorithm,
     RandomSearchAlgorithm,
     TrialPoint,
-    GPSearchAlgorithm,
+    GPRSearchAlgorithm,
     SVRSearchAlgorithm,
-    QGPSearchAlgorithm,
+    QGPRSearchAlgorithm,
+    QSVRSearchAlgorithm,
 )

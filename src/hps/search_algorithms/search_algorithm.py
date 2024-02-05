@@ -1,5 +1,8 @@
 import numpy as np
 from typing import Union, Tuple, Dict, Any, Type, Optional, List
+
+from matplotlib import pyplot as plt
+
 from ..search_space import SearchSpace
 
 
@@ -10,22 +13,29 @@ class TrialPoint:
     :type point: Dict[str, Any]
     :param value: The value of the point in the search space.
     :type value: Optional[Any]
+    :param best_pred_value: The best predicted value of the point in the search space.
+    :type best_pred_value: Optional[Any]
 
     :ivar point: The point in the search space.
     :ivar value: The value of the point in the search space.
+    :ivar best_pred_value: The best predicted value of the point in the search space.
     """
     def __init__(
             self,
             point: Dict[str, Any],
             value: Optional[Any] = None,
-            pred_value: Optional[Any] = None
+            best_pred_value: Optional[Any] = None
     ):
         self.point = point
         self.value = value
-        self.pred_value = pred_value
+        self.best_pred_value = best_pred_value
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(point={self.point}, value={self.value}, pred_value={self.pred_value})"
+        return (f"{self.__class__.__name__}("
+                f"point={self.point}, "
+                f"value={self.value}, "
+                f"best_pred_value={self.best_pred_value}"
+                f")")
 
 
 class SearchHistory:
@@ -79,7 +89,10 @@ class SearchHistory:
 
         :return: The best point in the search space.
         """
-        return max(self.history, key=lambda tp: tp.pred_value)
+        filtered = [tp for tp in self.history if tp.best_pred_value is not None]
+        if len(filtered) == 0:
+            return TrialPoint(point={}, value=None, best_pred_value=None)
+        return max(filtered, key=lambda tp: tp.best_pred_value)
 
 
 class SearchAlgorithm:
@@ -144,3 +157,13 @@ class SearchAlgorithm:
             for key, value in zip(self.search_space.keys, x)
         }
 
+    def plot_search(
+            self,
+            *,
+            fig: Optional[plt.Figure] = None,
+            ax: Optional[plt.Axes] = None,
+            show: bool = True,
+            filename: Optional[str] = None,
+            **kwargs
+    ):
+        raise NotImplementedError

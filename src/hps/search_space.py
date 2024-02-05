@@ -2,6 +2,8 @@ from typing import Dict, Any, Optional, List
 
 import numpy as np
 
+from hps.tools import UMAP_PCA_1d_REDUCER
+
 
 class Dimension:
     r"""Base class for a dimension.
@@ -364,28 +366,28 @@ class SearchSpace:
         """
         return [self.point_from_linear(point) for point in points]
 
-    def fit_reducer(self, x: np.ndarray, k: int = 2):
+    def fit_reducer(self, x: np.ndarray, k: int = 1):
         reducer = self.get_reducer(k)
         reducer.fit(x)
         return reducer
 
-    def get_reducer(self, k: int = 2):
+    def get_reducer(self, k: int = 1):
         import umap
-        k = max(2, k)
-        reducer = self.reducers.get(k, umap.UMAP(n_components=k))
+        if k == 1:
+            reducer = self.reducers.get(k, UMAP_PCA_1d_REDUCER())
+        else:
+            reducer = self.reducers.get(k, umap.UMAP(n_components=k))
         self.reducers[k] = reducer
         return reducer
 
-    def reducer_transform(self, x: np.ndarray, k: int = 2):
+    def reducer_transform(self, x: np.ndarray, k: int = 1):
         reducer = self.get_reducer(k)
-        if k == 1:
-            return reducer.transform(x)[:, 0]
         return reducer.transform(x)
 
     def points_to_kd_linear(
             self,
             points: List[Any],
-            k: int = 2,
+            k: int = 1,
             skip_if_k_eq_dim: bool = True,
             fit_reducer: bool = False,
     ) -> List[float]:
