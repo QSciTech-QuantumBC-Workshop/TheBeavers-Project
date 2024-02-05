@@ -37,8 +37,9 @@ def qgpr_main(
         # ei_gif_folder=os.path.join(figure_path, "qei_gif"),
         **kwargs
     )
+    save_path = os.path.join(figure_path, "qgpr_pipeline.pkl")
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
-        path=os.path.join(figure_path, "qgpr_pipeline.pkl"),
+        path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
@@ -46,7 +47,7 @@ def qgpr_main(
         search_space=ml_pipeline_cls.search_space,
         n_trials=n_trials,
     )
-    out = pipeline.run(desc="QGPR Hyperparameters search")
+    out = pipeline.run(desc="QGPR Hyperparameters search", save_path=save_path)
     # sa.make_gif()
     # cfig, _ = pipeline.plot_score_history(show=False, filename=os.path.join(figure_path, "qgp_history.pdf"))
     # plt.close(cfig)
@@ -72,8 +73,9 @@ def qsvr_main(
     fig_kwargs = fig_kwargs or {}
     figure_path = os.path.join(os.path.dirname(__file__), "figures", "qsvr")
     sa = hps.QSVRSearchAlgorithm(**kwargs)
+    save_path = os.path.join(figure_path, "qsvr_pipeline.pkl")
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
-        path=os.path.join(figure_path, "qsvr_pipeline.pkl"),
+        path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
@@ -81,7 +83,7 @@ def qsvr_main(
         search_space=ml_pipeline_cls.search_space,
         n_trials=n_trials,
     )
-    out = pipeline.run(desc="QSVR Hyperparameters search")
+    out = pipeline.run(desc="QSVR Hyperparameters search", save_path=save_path)
     print(f"QSVR Best hyperparameters: {out.best_hyperparameters}")
     # cfig, _ = pipeline.plot_score_history(show=False, filename=os.path.join(figure_path, "qsvr_history.pdf"))
     # plt.close(cfig)
@@ -110,8 +112,9 @@ def gpr_main(
         # ei_gif_folder=os.path.join(figure_path, "ei_gif"),
         **kwargs
     )
+    save_path = os.path.join(figure_path, "gpr_pipeline.pkl")
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
-        path=os.path.join(figure_path, "gpr_pipeline.pkl"),
+        path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
@@ -119,7 +122,7 @@ def gpr_main(
         search_space=ml_pipeline_cls.search_space,
         n_trials=n_trials,
     )
-    out = pipeline.run(desc="GPR Hyperparameters search")
+    out = pipeline.run(desc="GPR Hyperparameters search", save_path=save_path)
     # sa.make_gif()
     # cfig, _ = pipeline.plot_score_history(show=False, filename=os.path.join(figure_path, "gp_history.pdf"))
     # plt.close(cfig)
@@ -145,8 +148,9 @@ def svr_main(
     fig_kwargs = fig_kwargs or {}
     figure_path = os.path.join(os.path.dirname(__file__), "figures", "svr")
     sa = hps.SVRSearchAlgorithm(**kwargs)
+    save_path = os.path.join(figure_path, "svr_pipeline.pkl")
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
-        path=os.path.join(figure_path, "svr_pipeline.pkl"),
+        path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
@@ -154,7 +158,7 @@ def svr_main(
         search_space=ml_pipeline_cls.search_space,
         n_trials=n_trials,
     )
-    out = pipeline.run(desc="SVR Hyperparameters search")
+    out = pipeline.run(desc="SVR Hyperparameters search", save_path=save_path)
     print(f"SVR Best hyperparameters: {out.best_hyperparameters}")
     # cfig, _ = pipeline.plot_score_history(show=False, filename=os.path.join(figure_path, "svr_history.pdf"))
     # plt.close(cfig)

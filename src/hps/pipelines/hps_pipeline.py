@@ -96,6 +96,9 @@ class HpSearchPipeline(BasePipeline):
         ml_pipeline = self.make_ml_pipeline(best_hyperparameters.point)
         ml_pipeline.run(dataset=self.dataset, **kwargs)
         best_hyperparameters.value = ml_pipeline.get_score(*self.test_dataset)
+        save_path = kwargs.get("save_path", None)
+        if save_path is not None:
+            self.to_pickle(save_path)
         return PipelineRunOutput(
             best_ml_pipeline=ml_pipeline,
             best_hyperparameters=best_hyperparameters,
