@@ -250,6 +250,7 @@ class SearchSpace:
 
         self._keys = list(self._space.keys())
         self.reducers = {}
+        self._reducers_fitted = {}
 
     @property
     def dimensions(self):
@@ -366,9 +367,17 @@ class SearchSpace:
         """
         return [self.point_from_linear(point) for point in points]
 
-    def fit_reducer(self, x: np.ndarray, k: int = 1):
+    def get_reducer_is_fitted(self, k: int = 1):
+        self._reducers_fitted = getattr(self, "_reducers_fitted", {})
+        return self._reducers_fitted.get(k, False)
+
+    def fit_reducer(self, x: np.ndarray, k: int = 1, if_not_fitted: bool = False):
+        self._reducers_fitted = getattr(self, "_reducers_fitted", {})
         reducer = self.get_reducer(k)
+        if if_not_fitted and self.get_reducer_is_fitted(k):
+            return reducer
         reducer.fit(x)
+        self._reducers_fitted[k] = True
         return reducer
 
     def get_reducer(self, k: int = 1):

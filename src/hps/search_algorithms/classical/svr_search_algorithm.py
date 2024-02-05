@@ -14,7 +14,6 @@ class SVRSearchAlgorithm(SearchAlgorithm):
         self.model = SVR()
         self.epsilon = config.get('epsilon', 0.1)
         self.warmup_trials = config.get('warmup_trials', 10)
-        self.space_quantization = config.get('space_quantization', 100)
         self._fit = False
 
     def get_next_trial_point(self) -> TrialPoint:
@@ -24,6 +23,7 @@ class SVRSearchAlgorithm(SearchAlgorithm):
                 point=self.search_space.sample()
             )
         x, y = self.make_x_y_from_history()
+        x, y = np.concatenate([x, self.warmup_x], axis=0), np.concatenate([y, self.warmup_y], axis=0)
         self.model.fit(x, y)
         self._fit = True
 
@@ -50,18 +50,20 @@ class SVRSearchAlgorithm(SearchAlgorithm):
         if not self._fit:
             self.model.fit(x, y)
             self._fit = True
+        if fig is None or ax is None:
+            fig, ax = plt.subplots()
+
         linear_x = kwargs.get('linear_x', None)
         if linear_x is None:
             linear_space = np.linspace(0, 1, self.space_quantization)
             linear_x = np.stack([linear_space] * len(self.search_space.dimensions), axis=1)
-        y_pred = kwargs.get('y_pred', self.model.predict(linear_x))
-        self.search_space.fit_reducer(linear_x, k=1)
+
+        self.search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
         linear_x_1d = np.ravel(self.search_space.reducer_transform(linear_x, k=1))
 
-        if fig is None or ax is None:
-            fig, ax = plt.subplots()
-
-        ax.plot(linear_x_1d, y_pred, label='Prediction', color=kwargs.get('color', 'blue'))
+        if kwargs.get("plot_pred", True):
+            y_pred = kwargs.get('y_pred', self.model.predict(linear_x))
+            ax.plot(linear_x_1d, y_pred, label='Prediction', color=kwargs.get('color', 'blue'))
 
         # add points from history as scatter
         x_1d = self.search_space.reducer_transform(x, k=1)

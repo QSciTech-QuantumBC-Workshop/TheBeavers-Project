@@ -18,7 +18,6 @@ class GPRSearchAlgorithm(SearchAlgorithm):
             kernel=ConstantKernel() * Matern(length_scale=1.0, nu=2.5)
         )
         self.warmup_trials = config.get('warmup_trials', 10)
-        self.space_quantization = config.get('space_quantization', 100)
         self._fit = False
         self.ei_gif_folder = config.get('ei_gif_folder', None)
         self.xi = config.get('xi', 0.01)
@@ -30,6 +29,7 @@ class GPRSearchAlgorithm(SearchAlgorithm):
                 point=self.search_space.sample()
             )
         x, y = self.make_x_y_from_history()
+        x, y = np.concatenate([x, self.warmup_x], axis=0), np.concatenate([y, self.warmup_y], axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.model.fit(x, y)
@@ -112,14 +112,15 @@ class GPRSearchAlgorithm(SearchAlgorithm):
         ei, mu, sigma = kwargs.get('ei', None), kwargs.get('mu', None), kwargs.get('sigma', None)
         if ei is None or mu is None or sigma is None:
             ei, mu, sigma = self.expected_improvement(linear_x, y)
-        self.search_space.fit_reducer(linear_x, k=1)
+        self.search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
         linear_x_1d = np.ravel(self.search_space.reducer_transform(linear_x, k=1))
 
         if fig is None or ax is None:
             fig, ax = plt.subplots()
 
-        ax.plot(linear_x_1d, mu, label='Mean', color=kwargs.get('color', 'blue'))
-        ax.fill_between(linear_x_1d, mu - sigma, mu + sigma, alpha=0.1, color=kwargs.get('color', 'blue'))
+        if kwargs.get("plot_pred", True):
+            ax.plot(linear_x_1d, mu, label='Mean', color=kwargs.get('color', 'blue'))
+            ax.fill_between(linear_x_1d, mu - sigma, mu + sigma, alpha=0.1, color=kwargs.get('color', 'blue'))
 
         # add points from history as scatter
         x_1d = self.search_space.reducer_transform(x, k=1)

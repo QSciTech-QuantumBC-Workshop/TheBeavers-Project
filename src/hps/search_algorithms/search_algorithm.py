@@ -1,3 +1,6 @@
+import os
+import pickle
+
 import numpy as np
 from typing import Union, Tuple, Dict, Any, Type, Optional, List
 
@@ -111,6 +114,9 @@ class SearchAlgorithm:
         self.search_space: SearchSpace = search_space
         self.config = config
         self.history: SearchHistory = SearchHistory()
+        self.warmup_history: SearchHistory = config.get('warmup_history', SearchHistory())
+        self.warmup_x, self.warmup_y = self.make_x_y_from_history(self.warmup_history)
+        self.space_quantization = config.get('space_quantization', 100)
 
     def set_search_space(self, search_space: SearchSpace):
         r"""Set the search space to use for searching the best hyperparameters.
@@ -137,15 +143,21 @@ class SearchAlgorithm:
         """
         return self.history.get_best_point()
 
-    def make_x_y_from_history(self) -> Tuple[np.ndarray, np.ndarray]:
+    def make_x_y_from_history(self, history: Optional[SearchHistory] = None) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Make X and Y from the history of the search algorithm. X is the points in the search space and Y is the values
         of the points in the search space.
 
+        :param history: The history of the search algorithm.
+        :type history: Optional[SearchHistory]
         :return: A tuple containing X and Y.
         """
-        x = self.search_space.points_to_linear(self.history.get_ordered_points(self.search_space.keys))
-        y = np.array(self.history.values)
+        if history is None:
+            history = self.history
+        if len(history) == 0:
+            return np.array([]), np.array([])
+        x = self.search_space.points_to_linear(history.get_ordered_points(self.search_space.keys))
+        y = np.array(history.values)
         return x, y
 
     def make_hp_from_x(self, x) -> dict:
@@ -166,4 +178,88 @@ class SearchAlgorithm:
             filename: Optional[str] = None,
             **kwargs
     ):
-        raise NotImplementedError
+        if kwargs.get("as_violin", False):
+            return self.plot_violin_search(fig=fig, ax=ax, show=show, filename=filename, **kwargs)
+        x, y = kwargs.get('x', None), kwargs.get('y', None)
+        if x is None or y is None:
+            x, y = self.make_x_y_from_history()
+        linear_x = kwargs.get('linear_x', None)
+        if linear_x is None:
+            linear_space = np.linspace(0, 1, self.space_quantization)
+            linear_x = np.stack([linear_space] * len(self.search_space.dimensions), axis=1)
+        self.search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
+        if fig is None or ax is None:
+            fig, ax = plt.subplots()
+
+        # add points from history as scatter
+        x_1d = self.search_space.reducer_transform(x, k=1)
+        ax.scatter(
+            x_1d, y,
+            label='History',
+            color=kwargs.get('color', 'green'),
+            marker='x'
+        )
+
+        ax.legend()
+        ax.set_xlabel('Hyperparameter Space [-]')
+        ax.set_ylabel('Score [-]')
+
+        if filename is not None:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            plt.savefig(filename)
+
+        if show:
+            plt.show()
+        return fig, ax
+
+    def plot_violin_search(
+            self,
+            *,
+            fig: Optional[plt.Figure] = None,
+            ax: Optional[plt.Axes] = None,
+            show: bool = True,
+            filename: Optional[str] = None,
+            **kwargs
+    ):
+        x, y = kwargs.get('x', None), kwargs.get('y', None)
+        if x is None or y is None:
+            x, y = self.make_x_y_from_history()
+        linear_x = kwargs.get('linear_x', None)
+        if linear_x is None:
+            linear_space = np.linspace(0, 1, self.space_quantization)
+            linear_x = np.stack([linear_space] * len(self.search_space.dimensions), axis=1)
+        self.search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
+        if fig is None or ax is None:
+            fig, ax = plt.subplots()
+
+        # add points from history as scatter
+        x_1d = self.search_space.reducer_transform(x, k=1)
+        violin_position = kwargs.get('violin_position', 0)
+        ax.violinplot(
+            x_1d,
+            widths=0.1,
+            showmeans=True
+        )
+
+        ax.legend()
+        ax.set_xlabel('Hyperparameter Space [-]')
+        ax.set_ylabel('Score [-]')
+
+        if filename is not None:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            plt.savefig(filename)
+
+        if show:
+            plt.show()
+        return fig, ax
+
+    @classmethod
+    def from_pickle(cls, path: str) -> "SearchAlgorithm":
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
+    @classmethod
+    def from_pickle_or_new(cls, path: str, **kwargs) -> "SearchAlgorithm":
+        if os.path.exists(path):
+            return cls.from_pickle(path)
+        return cls(**kwargs)

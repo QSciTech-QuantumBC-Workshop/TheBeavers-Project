@@ -102,6 +102,9 @@ class HpSearchPipeline(BasePipeline):
         return PipelineRunOutput(
             best_ml_pipeline=ml_pipeline,
             best_hyperparameters=best_hyperparameters,
+            history=self.search_algorithm.history,
+            search_space=self.search_space,
+            search_algorithm=self.search_algorithm,
         )
 
     def plot_score_history(
@@ -113,9 +116,25 @@ class HpSearchPipeline(BasePipeline):
         history = self.search_algorithm.history
         x = list(range(len(history)))
         y = [float(point.value) for point in history]
+        y_std = None
+        if kwargs.get("y_cumsum", False):
+            y = np.cumsum(y)
+        if kwargs.get("y_max_normalize", False):
+            y = y / np.max(y)
+        if kwargs.get("y_running_mean", False):
+            n_mean_pts = kwargs.get("n_mean_pts", max(3, int(0.05 * len(y))))
+            # pad the y array to avoid edge effects
+            half_window = n_mean_pts // 2
+            y = np.pad(y, (half_window, half_window), mode="edge")
+            y = np.convolve(y, np.ones(n_mean_pts) / n_mean_pts, mode="same")
+            y_std = kwargs.get("y_std_coeff", 1.0) * np.convolve(y, np.ones(n_mean_pts) / n_mean_pts, mode="same")
+            y = y[half_window:-half_window]
+            y_std = y_std[half_window:-half_window]
         if fig is None or ax is None:
             fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=kwargs.get("figsize", (14, 10)))
         ax.plot(x, y, color=kwargs.get("color", "blue"))
+        if y_std is not None:
+            ax.fill_between(x, y - y_std, y + y_std, alpha=0.1, color=kwargs.get("color", "blue"))
         ax.set_xlabel("Iteration [-]")
         ax.set_ylabel("Score [-]")
         filename = kwargs.get("filename", None)
@@ -193,6 +212,7 @@ class HpSearchPipeline(BasePipeline):
     @classmethod
     def from_pickle_or_new(cls, path: str, **kwargs) -> "HpSearchPipeline":
         if os.path.exists(path):
+            print(f"Loading pipeline from {path}")
             return cls.from_pickle(path)
         return cls(**kwargs)
 
