@@ -74,28 +74,37 @@ class HpSearchPipeline(BasePipeline):
             **self.ml_pipeline_config,
         )
 
-    def search_hyperparameters(self) -> TrialPoint:
+    def search_hyperparameters(self, **kwargs) -> TrialPoint:
         if self.search_space is not None:
             self.search_algorithm.set_search_space(self.search_space)
         n_trials = self.config.get('n_trials', 10)
-        p_bar = tqdm(range(n_trials), desc="Hyperparameter search")
+        initial_length = len(self.search_algorithm.history)
+        n_trials_todo = max(n_trials - initial_length, 0)
+        p_bar = tqdm(range(n_trials_todo), desc=kwargs.get("desc", "Hyperparameter search"))
         for i in p_bar:
             trial_point = self.search_algorithm.get_next_trial_point()
             ml_pipeline = self.make_ml_pipeline(trial_point.point)
-            ml_pipeline.run(dataset=self.dataset, i=i, n_trials=n_trials)
+            ml_pipeline.run(dataset=self.dataset, i=i+initial_length, n_trials=n_trials)
             trial_point.value = ml_pipeline.get_score(*self.test_dataset)
             self.search_algorithm.update(trial_point)
-            p_bar.set_postfix(best_score=self.search_algorithm.get_best_point().value)
+            h_best_score = self.search_algorithm.history.get_best_point().value
+            p_bar.set_postfix(best_score=h_best_score, pred_best_score=trial_point.best_pred_value)
         return self.search_algorithm.get_best_point()
 
     def run(self, **kwargs) -> PipelineRunOutput:
-        # dataset = self.maybe_load_dataset(self.dataset)
-        # dataset = self.preprocess_dataset(dataset)
-        best_hyperparameters = self.search_hyperparameters()
+        best_hyperparameters = self.search_hyperparameters(**kwargs)
         ml_pipeline = self.make_ml_pipeline(best_hyperparameters.point)
+        ml_pipeline.run(dataset=self.dataset, **kwargs)
+        best_hyperparameters.value = ml_pipeline.get_score(*self.test_dataset)
+        save_path = kwargs.get("save_path", None)
+        if save_path is not None:
+            self.to_pickle(save_path)
         return PipelineRunOutput(
             best_ml_pipeline=ml_pipeline,
-            best_hyperparameters=best_hyperparameters
+            best_hyperparameters=best_hyperparameters,
+            history=self.search_algorithm.history,
+            search_space=self.search_space,
+            search_algorithm=self.search_algorithm,
         )
 
     def plot_score_history(
@@ -107,11 +116,31 @@ class HpSearchPipeline(BasePipeline):
         history = self.search_algorithm.history
         x = list(range(len(history)))
         y = [float(point.value) for point in history]
+        y_std = None
+        if kwargs.get("y_cumsum", False):
+            y = np.cumsum(y)
+        if kwargs.get("y_max_normalize", False):
+            y = y / np.max(y)
+        if kwargs.get("y_running_mean", False):
+            n_mean_pts = kwargs.get("n_mean_pts", max(3, int(0.05 * len(y))))
+            # pad the y array to avoid edge effects
+            half_window = n_mean_pts // 2
+            y = np.pad(y, (half_window, half_window), mode="edge")
+            y = np.convolve(y, np.ones(n_mean_pts) / n_mean_pts, mode="same")
+            y_std = kwargs.get("y_std_coeff", 1.0) * np.convolve(y, np.ones(n_mean_pts) / n_mean_pts, mode="same")
+            y = y[half_window:-half_window]
+            y_std = y_std[half_window:-half_window]
         if fig is None or ax is None:
             fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=kwargs.get("figsize", (14, 10)))
-        ax.plot(x, y)
+        ax.plot(x, y, color=kwargs.get("color", "blue"))
+        if y_std is not None:
+            ax.fill_between(x, y - y_std, y + y_std, alpha=0.1, color=kwargs.get("color", "blue"))
         ax.set_xlabel("Iteration [-]")
         ax.set_ylabel("Score [-]")
+        filename = kwargs.get("filename", None)
+        if filename is not None:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            plt.savefig(filename)
         if kwargs.get("show", True):
             plt.show()
         return fig, ax
@@ -183,6 +212,7 @@ class HpSearchPipeline(BasePipeline):
     @classmethod
     def from_pickle_or_new(cls, path: str, **kwargs) -> "HpSearchPipeline":
         if os.path.exists(path):
+            print(f"Loading pipeline from {path}")
             return cls.from_pickle(path)
         return cls(**kwargs)
 

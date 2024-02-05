@@ -1,3 +1,4 @@
 from .random_search_algorithm import RandomSearchAlgorithm
-from .gp_search_algorithm import GPSearchAlgorithm
+from .gpr_search_algorithm import GPRSearchAlgorithm
+from .svr_search_algorithm import SVRSearchAlgorithm
 
