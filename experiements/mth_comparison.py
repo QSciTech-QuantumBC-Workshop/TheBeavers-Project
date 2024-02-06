@@ -1,6 +1,7 @@
 import argparse
 import os
-from typing import Optional
+from copy import deepcopy
+from typing import Optional, Type
 from collections import OrderedDict
 
 import numpy as np
@@ -35,19 +36,20 @@ def qgpr_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "qgpr")
     save_path = os.path.join(figure_path, "qgpr_pipeline.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
         search_algorithm=hps.QGPRSearchAlgorithm(
-            search_space=ml_pipeline_cls.search_space,
+            search_space=search_space,
             sigma_noise=1e-6,
             xi=0.01,
             # ei_gif_folder=os.path.join(figure_path, "qei_gif"),
             **kwargs
         ),
-        search_space=ml_pipeline_cls.search_space,
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="QGPR Hyperparameters search", save_path=save_path)
@@ -82,13 +84,14 @@ def qsvr_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "qsvr")
     save_path = os.path.join(figure_path, "qsvr_pipeline.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
-        search_algorithm=hps.QSVRSearchAlgorithm(search_space=ml_pipeline_cls.search_space, **kwargs),
-        search_space=ml_pipeline_cls.search_space,
+        search_algorithm=hps.QSVRSearchAlgorithm(search_space=search_space, **kwargs),
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="QSVR Hyperparameters search", save_path=save_path)
@@ -121,19 +124,20 @@ def gpr_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "gpr")
     save_path = os.path.join(figure_path, "gpr_pipeline.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
         search_algorithm=hps.GPRSearchAlgorithm(
-            search_space=ml_pipeline_cls.search_space,
+            search_space=search_space,
             sigma_noise=1e-6,
             xi=0.01,
             # ei_gif_folder=os.path.join(figure_path, "ei_gif"),
             **kwargs
         ),
-        search_space=ml_pipeline_cls.search_space,
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="GPR Hyperparameters search", save_path=save_path)
@@ -168,13 +172,14 @@ def svr_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "svr")
     save_path = os.path.join(figure_path, "svr_pipeline.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
-        search_algorithm=hps.SVRSearchAlgorithm(search_space=ml_pipeline_cls.search_space, **kwargs),
-        search_space=ml_pipeline_cls.search_space,
+        search_algorithm=hps.SVRSearchAlgorithm(search_space=search_space, **kwargs),
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="SVR Hyperparameters search", save_path=save_path)
@@ -207,13 +212,14 @@ def random_search_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "random_search")
     save_path = os.path.join(figure_path, f"{kwargs.get('pipeline_name', 'random_search_pipeline')}.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
-        search_algorithm=hps.RandomSearchAlgorithm(search_space=ml_pipeline_cls.search_space, **kwargs),
-        search_space=ml_pipeline_cls.search_space,
+        search_algorithm=hps.RandomSearchAlgorithm(search_space=search_space, **kwargs),
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="Random Search Hyperparameters search", save_path=save_path)
@@ -237,7 +243,18 @@ def parse_args():
     parser.add_argument("--warmup_trials", type=int, default=0)
     parser.add_argument("--warmup_rn_history", type=int, default=2)
     parser.add_argument("--space_quantization", type=int, default=1000)
-    parser.add_argument("--save_dirname", type=str, default="figures")
+    parser.add_argument("--save_dirname", type=str, default="figures__")
+    parser.add_argument(
+        "--methods", type=str, nargs="+",
+        default=["QSVR", "QGPR", "GPR", "SVR", "RandomSearch"]
+    )
+    parser.add_argument(
+        "--dimensions", type=str, nargs="+",
+        default=[
+            "learning_rate_init", "hidden_layer_size", "n_hidden_layer",
+            "max_iter", "learning_rate", "activation",
+        ]
+    )
     return parser.parse_args()
 
 
@@ -422,6 +439,24 @@ def plot_dists_over_itr(
     # plt.show()
 
 
+def get_reference_point(
+        ml_pipeline_cls: Type[MlpPipeline],
+        x_train, x_test, y_train, y_test,
+        **kwargs
+) -> hps.TrialPoint:
+    hyperparameters = ml_pipeline_cls.get_default_hyperparameters(**kwargs)
+    pipeline = ml_pipeline_cls(
+        dataset=(x_train, y_train),
+        hyperparameters=hyperparameters,
+        **kwargs
+    )
+    pipeline.run(dataset=(x_train, y_train), **kwargs)
+    return hps.TrialPoint(
+        point=hyperparameters,
+        value=pipeline.get_score(x_test, y_test)
+    )
+
+
 def main():
     args = parse_args()
     np.random.seed(42)
@@ -433,10 +468,13 @@ def main():
         "SVR": svr_main,
         "RandomSearch": random_search_main,
     })
+    mth_to_main_func = {mth: main_func for mth, main_func in mth_to_main_func.items() if mth in args.methods}
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     mth_to_color = {mth: color for mth, color in zip(mth_to_main_func.keys(), colors)}
     mth_to_out = {}
     ml_pipeline_cls = MlpPipeline
+    search_space = ml_pipeline_cls.get_search_space(dimensions=args.dimensions)
+    print(f"Search space: {search_space}")
     if args.warmup_rn_history > 0:
         rn_out = random_search_main(
             x_train, x_test, y_train, y_test,
@@ -446,8 +484,12 @@ def main():
             pipeline_name="rn_warmup",
             plot=False,
             save_dirname=args.save_dirname,
+            dimensions=args.dimensions,
+            search_space=search_space,
         )
-
+    initial_history = hps.SearchHistory([
+        get_reference_point(ml_pipeline_cls, x_train, x_test, y_train, y_test, dimensions=args.dimensions)
+    ])
     for mth, main_func in mth_to_main_func.items():
         out = main_func(
             x_train, x_test, y_train, y_test,
@@ -464,6 +506,9 @@ def main():
             n_trials=args.n_trials,
             warmup_trials=args.warmup_trials,
             warmup_history=rn_out.history,
+            history=deepcopy(initial_history),
+            dimensions=args.dimensions,
+            search_space=search_space,
             save_dirname=args.save_dirname,
         )
         mth_to_out[mth] = out

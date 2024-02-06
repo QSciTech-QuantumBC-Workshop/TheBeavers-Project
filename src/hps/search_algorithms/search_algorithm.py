@@ -46,8 +46,8 @@ class SearchHistory:
 
     :ivar history: The history of the search algorithm.
     """
-    def __init__(self):
-        self.history: List[TrialPoint] = []
+    def __init__(self, history: Optional[List[TrialPoint]] = None, **kwargs):
+        self.history: List[TrialPoint] = history or []
 
     @property
     def points(self):
@@ -113,7 +113,7 @@ class SearchAlgorithm:
     def __init__(self, search_space: Optional[SearchSpace] = None, **config):
         self.search_space: SearchSpace = search_space
         self.config = config
-        self.history: SearchHistory = SearchHistory()
+        self.history: SearchHistory = config.get('history', SearchHistory())
         self.warmup_history: SearchHistory = config.get('warmup_history', SearchHistory())
         self.warmup_x, self.warmup_y = self.make_x_y_from_history(self.warmup_history)
         self.space_quantization = config.get('space_quantization', 100)

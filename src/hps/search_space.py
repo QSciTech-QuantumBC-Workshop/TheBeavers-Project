@@ -15,7 +15,13 @@ class Dimension:
         self.name = name
 
     def __repr__(self):
-        return f"{self.__class__.__name__}()"
+        extra_repr = self.extra_repr()
+        if extra_repr:
+            return f"{self.__class__.__name__}({self.name}, {extra_repr})"
+        return f"{self.__class__.__name__}({self.name})"
+
+    def extra_repr(self):
+        return ""
 
     def get_rnd(self):
         raise NotImplementedError
@@ -63,8 +69,8 @@ class Real(Dimension):
         self.low = low
         self.high = high
 
-    def __repr__(self):
-        return f"Real({self.low}, {self.high})"
+    def extra_repr(self):
+        return f"{self.low}, {self.high}"
 
     def get_rnd(self):
         return np.random.uniform(self.low, self.high)
@@ -123,8 +129,8 @@ class Integer(Dimension):
         self.low = low
         self.high = high
 
-    def __repr__(self):
-        return f"Integer({self.low}, {self.high})"
+    def extra_repr(self):
+        return f"{self.low}, {self.high}"
 
     def get_rnd(self):
         return np.random.randint(self.low, self.high)
@@ -180,8 +186,8 @@ class Categorical(Dimension):
         super().__init__(name)
         self.values = values
 
-    def __repr__(self):
-        return f"Categorical({self.values})"
+    def extra_repr(self):
+        return f"{self.values}"
 
     def get_rnd(self):
         return np.random.choice(self.values)
@@ -259,6 +265,13 @@ class SearchSpace:
     @property
     def keys(self):
         return self._keys
+
+    def __repr__(self):
+        dimensions = ", ".join([f"{v}" for v in self.dimensions])
+        return f"{self.__class__.__name__}({dimensions})"
+
+    def get_dimension(self, key: str) -> Dimension:
+        return self._space[key]
 
     def get_random_point(self) -> Dict[str, Any]:
         r"""Get a random point in the search space.

@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Tuple
+from typing import Tuple, Optional
 import os
 
 import numpy as np
@@ -25,7 +25,28 @@ class MlpPipeline(hps.MLPipeline):
         hps.Categorical("activation", ['identity', 'logistic', 'tanh', 'relu']),
     )
 
-    def __init__(self, dataset: Tuple[np.ndarray, np.ndarray], hyperparameters: dict, **config):
+    @classmethod
+    def get_search_space(cls, **kwargs):
+        dimensions_names = kwargs.get('dimensions', cls.search_space.keys)
+        dimensions_names = dimensions_names or cls.search_space.keys
+        dimensions = [cls.search_space.get_dimension(name) for name in dimensions_names]
+        return hps.SearchSpace(*dimensions)
+
+    @classmethod
+    def get_default_hyperparameters(cls, **kwargs):
+        dimensions_names = kwargs.get('dimensions', cls.search_space.keys)
+        dimensions_names = dimensions_names or cls.search_space.keys
+        default = {
+            "learning_rate_init": 0.001,
+            "hidden_layer_size": 100,
+            "n_hidden_layer": 1,
+            "max_iter": 200,
+            "learning_rate": "constant",
+            "activation": "relu",
+        }
+        return {k: default[k] for k in dimensions_names}
+
+    def __init__(self, dataset: Tuple[np.ndarray, np.ndarray], hyperparameters: Optional[dict] = None, **config):
         super().__init__(dataset, hyperparameters, **config)
         self.model = None
 

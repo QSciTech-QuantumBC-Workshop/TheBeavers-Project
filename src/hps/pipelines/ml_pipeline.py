@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Dict, Any
+from typing import Union, Tuple, Dict, Any, Optional
 
 import numpy as np
 
@@ -21,15 +21,24 @@ class MLPipeline(BasePipeline):
     :ivar hyperparameters: The hyperparameters to use for the model.
     :ivar config: Additional configuration parameters.
     """
+
+    @classmethod
+    def get_search_space(cls, **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def get_default_hyperparameters(cls, **kwargs):
+        raise NotImplementedError
+
     def __init__(
             self,
             dataset: Union[str, Tuple[np.ndarray, np.ndarray]],
-            hyperparameters: Dict[str, Any],
+            hyperparameters: Optional[Dict[str, Any]] = None,
             **config
     ):
         super().__init__(**config)
         self.dataset = dataset
-        self.hyperparameters = hyperparameters
+        self.hyperparameters = hyperparameters or self.get_default_hyperparameters(**config)
 
     def run(self, **kwargs) -> PipelineRunOutput:
         raise NotImplementedError
