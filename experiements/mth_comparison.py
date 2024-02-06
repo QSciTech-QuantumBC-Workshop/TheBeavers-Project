@@ -487,9 +487,9 @@ def main():
             dimensions=args.dimensions,
             search_space=search_space,
         )
-    initial_history = hps.SearchHistory([
-        get_reference_point(ml_pipeline_cls, x_train, x_test, y_train, y_test, dimensions=args.dimensions)
-    ])
+    initial_point = get_reference_point(ml_pipeline_cls, x_train, x_test, y_train, y_test, dimensions=args.dimensions)
+    print(f"Initial point: {initial_point}")
+    initial_history = hps.SearchHistory([initial_point])
     for mth, main_func in mth_to_main_func.items():
         out = main_func(
             x_train, x_test, y_train, y_test,
