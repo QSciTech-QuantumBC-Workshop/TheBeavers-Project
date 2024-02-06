@@ -241,9 +241,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--warmup_trials", type=int, default=0)
-    parser.add_argument("--warmup_rn_history", type=int, default=2)
+    parser.add_argument("--warmup_rn_history", type=int, default=10)
     parser.add_argument("--space_quantization", type=int, default=1000)
-    parser.add_argument("--save_dirname", type=str, default="figures__")
+    parser.add_argument("--save_dirname", type=str, default="results/rn_warmup_10_hn")
     parser.add_argument(
         "--methods", type=str, nargs="+",
         default=["QSVR", "QGPR", "GPR", "SVR", "RandomSearch"]
@@ -251,8 +251,12 @@ def parse_args():
     parser.add_argument(
         "--dimensions", type=str, nargs="+",
         default=[
-            "learning_rate_init", "hidden_layer_size", "n_hidden_layer",
-            "max_iter", "learning_rate", "activation",
+            # "learning_rate_init",
+            "hidden_layer_size",
+            "n_hidden_layer",
+            # "max_iter",
+            # "learning_rate",
+            # "activation",
         ]
     )
     return parser.parse_args()
@@ -290,17 +294,18 @@ def plot_violin_plot(
         mth_to_out,
         mth_to_color,
         args,
+        search_space,
 ):
     fig, axes = plt.subplots(1, 2, figsize=(22, 12), sharey="all")
     # on a ax plot the points distribution in a linear space as a violinplot
     x_dist_ax_idx = 0
     xy_map = {mth: out.search_algorithm.make_x_y_from_history() for mth, out in mth_to_out.items()}
     linear_x = np.stack(
-        [np.linspace(0, 1, args.space_quantization)] * len(ml_pipeline_cls.search_space.dimensions),
+        [np.linspace(0, 1, args.space_quantization)] * len(search_space.dimensions),
         axis=1
     )
-    ml_pipeline_cls.search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
-    x_1d_map = {mth: np.ravel(ml_pipeline_cls.search_space.reducer_transform(xy[0], k=1)) for mth, xy in xy_map.items()}
+    search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
+    x_1d_map = {mth: np.ravel(search_space.reducer_transform(xy[0], k=1)) for mth, xy in xy_map.items()}
     x_1d_map_values = [x_1d_map[mth] for mth in mth_to_out.keys()]
     axes[x_dist_ax_idx].violinplot(x_1d_map_values, showmeans=True, showmedians=False, vert=False)
     # axes[x_dist_ax_idx].set_yticks(range(1, len(mth_to_out) + 1))
@@ -349,6 +354,7 @@ def plot_dists_over_itr(
         mth_to_out,
         mth_to_color,
         args,
+        search_space,
 ):
     n_running_pts = 6
     half_window = n_running_pts // 2
@@ -357,12 +363,12 @@ def plot_dists_over_itr(
     x_dist_ax_idx = 0
     xy_map = {mth: out.search_algorithm.make_x_y_from_history() for mth, out in mth_to_out.items()}
     linear_x = np.stack(
-        [np.linspace(0, 1, args.space_quantization)] * len(ml_pipeline_cls.search_space.dimensions),
+        [np.linspace(0, 1, args.space_quantization)] * len(search_space.dimensions),
         axis=1
     )
-    ml_pipeline_cls.search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
+    search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
     x_1d_map = {
-        mth: np.ravel(ml_pipeline_cls.search_space.reducer_transform(xy[0], k=1))
+        mth: np.ravel(search_space.reducer_transform(xy[0], k=1))
         for mth, xy in xy_map.items()
     }
     # compute the cumulative values of the 1d map
@@ -513,8 +519,8 @@ def main():
         )
         mth_to_out[mth] = out
 
-    plot_violin_plot(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args)
-    plot_dists_over_itr(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args)
+    plot_violin_plot(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args, search_space)
+    plot_dists_over_itr(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args, search_space)
     plt.show()
 
 
