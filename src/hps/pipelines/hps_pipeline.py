@@ -55,6 +55,7 @@ class HpSearchPipeline(BasePipeline):
         self.ml_pipeline_config: Dict[str, Any] = ml_pipeline_config or {}
         self.search_space: SearchSpace = search_space
         self.search_algorithm = search_algorithm
+        self.best_hyperparameters: Optional[TrialPoint] = None
 
     def maybe_load_dataset(self, dataset: Union[str, Tuple[np.ndarray, np.ndarray]]) -> Tuple[np.ndarray, np.ndarray]:
         if isinstance(dataset, str):
@@ -92,16 +93,17 @@ class HpSearchPipeline(BasePipeline):
         return self.search_algorithm.get_best_point()
 
     def run(self, **kwargs) -> PipelineRunOutput:
-        best_hyperparameters = self.search_hyperparameters(**kwargs)
-        ml_pipeline = self.make_ml_pipeline(best_hyperparameters.point)
-        ml_pipeline.run(dataset=self.dataset, **kwargs)
-        best_hyperparameters.value = ml_pipeline.get_score(*self.test_dataset)
+        self.best_hyperparameters = self.search_hyperparameters(**kwargs)
+        ml_pipeline = self.make_ml_pipeline(self.best_hyperparameters.point)
+        if self.best_hyperparameters is None:
+            ml_pipeline.run(dataset=self.dataset, **kwargs)
+            self.best_hyperparameters.value = ml_pipeline.get_score(*self.test_dataset)
         save_path = kwargs.get("save_path", None)
         if save_path is not None:
             self.to_pickle(save_path)
         return PipelineRunOutput(
             best_ml_pipeline=ml_pipeline,
-            best_hyperparameters=best_hyperparameters,
+            best_hyperparameters=self.best_hyperparameters,
             history=self.search_algorithm.history,
             search_space=self.search_space,
             search_algorithm=self.search_algorithm,

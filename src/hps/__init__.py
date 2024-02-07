@@ -26,3 +26,4 @@ from .search_algorithms import (
     QGPRSearchAlgorithm,
     QSVRSearchAlgorithm,
 )
+from . import tools

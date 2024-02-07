@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 from copy import deepcopy
 from typing import Optional, Type
@@ -241,25 +242,38 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--warmup_trials", type=int, default=0)
-    parser.add_argument("--warmup_rn_history", type=int, default=10)
+    parser.add_argument("--warmup_rn_history", type=int, default=1)
     parser.add_argument("--space_quantization", type=int, default=1000)
-    parser.add_argument("--save_dirname", type=str, default="results/rn_warmup_10_hn")
+    parser.add_argument("--save_dirname", type=str, default="results/rn_warmup_1_hnle")
     parser.add_argument(
         "--methods", type=str, nargs="+",
-        default=["QSVR", "QGPR", "GPR", "SVR", "RandomSearch"]
+        default=[
+            "QSVR", "QGPR", "GPR", "SVR",
+            # "RandomSearch"
+        ]
     )
     parser.add_argument(
         "--dimensions", type=str, nargs="+",
         default=[
-            # "learning_rate_init",
+            "learning_rate_init",
             "hidden_layer_size",
             "n_hidden_layer",
-            # "max_iter",
+            "max_iter",
             # "learning_rate",
             # "activation",
         ]
     )
     return parser.parse_args()
+
+
+def args_to_json(args, filepath=None):
+    import json
+    json_dict = {k: v for k, v in args.__dict__.items()}
+    if filepath is not None:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, "w") as f:
+            json.dump(json_dict, f, indent=4)
+    return json_dict
 
 
 def get_and_plot_dataset():
@@ -465,6 +479,7 @@ def get_reference_point(
 
 def main():
     args = parse_args()
+    args_to_json(args, os.path.join(os.path.dirname(__file__), args.save_dirname, "args.json"))
     np.random.seed(42)
     x_train, x_test, y_train, y_test = get_and_plot_dataset()
     mth_to_main_func = OrderedDict({
@@ -496,6 +511,7 @@ def main():
     initial_point = get_reference_point(ml_pipeline_cls, x_train, x_test, y_train, y_test, dimensions=args.dimensions)
     print(f"Initial point: {initial_point}")
     initial_history = hps.SearchHistory([initial_point])
+    initial_history.to_json(os.path.join(os.path.dirname(__file__), args.save_dirname, "initial_history.json"))
     for mth, main_func in mth_to_main_func.items():
         out = main_func(
             x_train, x_test, y_train, y_test,
@@ -518,6 +534,11 @@ def main():
             save_dirname=args.save_dirname,
         )
         mth_to_out[mth] = out
+
+    hps.tools.to_json(
+        mth_to_out,
+        os.path.join(os.path.dirname(__file__), args.save_dirname, "mth_to_out.json")
+    )
 
     plot_violin_plot(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args, search_space)
     plot_dists_over_itr(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args, search_space)

@@ -20,6 +20,13 @@ class Dimension:
             return f"{self.__class__.__name__}({self.name}, {extra_repr})"
         return f"{self.__class__.__name__}({self.name})"
 
+    def __json__(self):
+        return {
+            "name": self.name,
+            "type": self.__class__.__name__,
+            "extra_repr": self.extra_repr()
+        }
+
     def extra_repr(self):
         return ""
 
@@ -269,6 +276,11 @@ class SearchSpace:
     def __repr__(self):
         dimensions = ", ".join([f"{v}" for v in self.dimensions])
         return f"{self.__class__.__name__}({dimensions})"
+
+    def __json__(self):
+        return {
+            "dimensions": [dim.__json__() for dim in self.dimensions]
+        }
 
     def get_dimension(self, key: str) -> Dimension:
         return self._space[key]

@@ -3,6 +3,7 @@ from typing import Union, Tuple, Dict, Any, Optional
 import numpy as np
 
 from .base_pipeline import BasePipeline, PipelineRunOutput
+from ..tools import to_json
 
 
 class MLPipeline(BasePipeline):
@@ -46,5 +47,11 @@ class MLPipeline(BasePipeline):
     def get_score(self, test_x, text_y, **kwargs) -> float:
         raise NotImplementedError
 
+    def __json__(self):
+        return dict(
+            dataset_shapes=(self.dataset[0].shape, self.dataset[1].shape),
+            hyperparameters=to_json(self.hyperparameters),
+            config=to_json(self.config)
+        )
 
 
