@@ -1,5 +1,6 @@
 import os
 import pickle
+import json
 
 import numpy as np
 from typing import Union, Tuple, Dict, Any, Type, Optional, List
@@ -7,6 +8,7 @@ from typing import Union, Tuple, Dict, Any, Type, Optional, List
 from matplotlib import pyplot as plt
 
 from ..search_space import SearchSpace
+from ..tools import to_json
 
 
 class TrialPoint:
@@ -40,14 +42,26 @@ class TrialPoint:
                 f"best_pred_value={self.best_pred_value}"
                 f")")
 
+    def to_json(self, filename: Optional[str] = None):
+        data = {
+            "point": self.point,
+            "value": self.value,
+            "best_pred_value": self.best_pred_value
+        }
+        if filename is not None:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "w") as f:
+                json.dump(data, f, indent=4)
+        return data
+
 
 class SearchHistory:
     r"""Class representing the history of the search algorithm.
 
     :ivar history: The history of the search algorithm.
     """
-    def __init__(self):
-        self.history: List[TrialPoint] = []
+    def __init__(self, history: Optional[List[TrialPoint]] = None, **kwargs):
+        self.history: List[TrialPoint] = history or []
 
     @property
     def points(self):
@@ -97,6 +111,17 @@ class SearchHistory:
             return TrialPoint(point={}, value=None, best_pred_value=None)
         return max(filtered, key=lambda tp: tp.best_pred_value)
 
+    def to_json(self, filename: Optional[str] = None):
+        data = [tp.to_json() for tp in self.history]
+        if filename is not None:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "w") as f:
+                json.dump(data, f, indent=4)
+        return data
+
+    def __json__(self):
+        return self.to_json()
+
 
 class SearchAlgorithm:
     r"""Base class for search algorithms.
@@ -110,10 +135,13 @@ class SearchAlgorithm:
     :ivar config: Additional configuration parameters.
     :ivar history: The history of the search algorithm.
     """
+
+    NON_SERIALIZE_ATTRIBUTES = ["model"]
+
     def __init__(self, search_space: Optional[SearchSpace] = None, **config):
         self.search_space: SearchSpace = search_space
         self.config = config
-        self.history: SearchHistory = SearchHistory()
+        self.history: SearchHistory = config.get('history', SearchHistory())
         self.warmup_history: SearchHistory = config.get('warmup_history', SearchHistory())
         self.warmup_x, self.warmup_y = self.make_x_y_from_history(self.warmup_history)
         self.space_quantization = config.get('space_quantization', 100)
@@ -263,3 +291,10 @@ class SearchAlgorithm:
         if os.path.exists(path):
             return cls.from_pickle(path)
         return cls(**kwargs)
+
+    def __json__(self):
+        data = {
+            k: to_json(v) for k, v in self.__dict__.items()
+            if k not in self.NON_SERIALIZE_ATTRIBUTES
+        }
+        return to_json(data)

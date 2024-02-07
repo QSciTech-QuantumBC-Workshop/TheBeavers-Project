@@ -1,6 +1,8 @@
 import argparse
+import json
 import os
-from typing import Optional
+from copy import deepcopy
+from typing import Optional, Type
 from collections import OrderedDict
 
 import numpy as np
@@ -35,19 +37,20 @@ def qgpr_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "qgpr")
     save_path = os.path.join(figure_path, "qgpr_pipeline.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
         search_algorithm=hps.QGPRSearchAlgorithm(
-            search_space=ml_pipeline_cls.search_space,
+            search_space=search_space,
             sigma_noise=1e-6,
             xi=0.01,
             # ei_gif_folder=os.path.join(figure_path, "qei_gif"),
             **kwargs
         ),
-        search_space=ml_pipeline_cls.search_space,
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="QGPR Hyperparameters search", save_path=save_path)
@@ -82,13 +85,14 @@ def qsvr_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "qsvr")
     save_path = os.path.join(figure_path, "qsvr_pipeline.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
-        search_algorithm=hps.QSVRSearchAlgorithm(search_space=ml_pipeline_cls.search_space, **kwargs),
-        search_space=ml_pipeline_cls.search_space,
+        search_algorithm=hps.QSVRSearchAlgorithm(search_space=search_space, **kwargs),
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="QSVR Hyperparameters search", save_path=save_path)
@@ -121,19 +125,20 @@ def gpr_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "gpr")
     save_path = os.path.join(figure_path, "gpr_pipeline.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
         search_algorithm=hps.GPRSearchAlgorithm(
-            search_space=ml_pipeline_cls.search_space,
+            search_space=search_space,
             sigma_noise=1e-6,
             xi=0.01,
             # ei_gif_folder=os.path.join(figure_path, "ei_gif"),
             **kwargs
         ),
-        search_space=ml_pipeline_cls.search_space,
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="GPR Hyperparameters search", save_path=save_path)
@@ -168,13 +173,14 @@ def svr_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "svr")
     save_path = os.path.join(figure_path, "svr_pipeline.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
-        search_algorithm=hps.SVRSearchAlgorithm(search_space=ml_pipeline_cls.search_space, **kwargs),
-        search_space=ml_pipeline_cls.search_space,
+        search_algorithm=hps.SVRSearchAlgorithm(search_space=search_space, **kwargs),
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="SVR Hyperparameters search", save_path=save_path)
@@ -207,13 +213,14 @@ def random_search_main(
     save_dirname = kwargs.get("save_dirname", "figures")
     figure_path = os.path.join(os.path.dirname(__file__), save_dirname, "random_search")
     save_path = os.path.join(figure_path, f"{kwargs.get('pipeline_name', 'random_search_pipeline')}.pkl")
+    search_space = kwargs.pop("search_space", ml_pipeline_cls.get_search_space(dimensions=kwargs.get("dimensions")))
     pipeline = hps.HpSearchPipeline.from_pickle_or_new(
         path=save_path,
         dataset=(x_train, y_train),
         test_dataset=(x_test, y_test),
         ml_pipeline_cls=ml_pipeline_cls,
-        search_algorithm=hps.RandomSearchAlgorithm(search_space=ml_pipeline_cls.search_space, **kwargs),
-        search_space=ml_pipeline_cls.search_space,
+        search_algorithm=hps.RandomSearchAlgorithm(search_space=search_space, **kwargs),
+        search_space=search_space,
         n_trials=n_trials,
     )
     out = pipeline.run(desc="Random Search Hyperparameters search", save_path=save_path)
@@ -235,10 +242,38 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_trials", type=int, default=100)
     parser.add_argument("--warmup_trials", type=int, default=0)
-    parser.add_argument("--warmup_rn_history", type=int, default=2)
+    parser.add_argument("--warmup_rn_history", type=int, default=1)
     parser.add_argument("--space_quantization", type=int, default=1000)
-    parser.add_argument("--save_dirname", type=str, default="figures")
+    parser.add_argument("--save_dirname", type=str, default="results/rn_warmup_1_hnle")
+    parser.add_argument(
+        "--methods", type=str, nargs="+",
+        default=[
+            "QSVR", "QGPR", "GPR", "SVR",
+            # "RandomSearch"
+        ]
+    )
+    parser.add_argument(
+        "--dimensions", type=str, nargs="+",
+        default=[
+            "learning_rate_init",
+            "hidden_layer_size",
+            "n_hidden_layer",
+            "max_iter",
+            # "learning_rate",
+            # "activation",
+        ]
+    )
     return parser.parse_args()
+
+
+def args_to_json(args, filepath=None):
+    import json
+    json_dict = {k: v for k, v in args.__dict__.items()}
+    if filepath is not None:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, "w") as f:
+            json.dump(json_dict, f, indent=4)
+    return json_dict
 
 
 def get_and_plot_dataset():
@@ -273,17 +308,18 @@ def plot_violin_plot(
         mth_to_out,
         mth_to_color,
         args,
+        search_space,
 ):
     fig, axes = plt.subplots(1, 2, figsize=(22, 12), sharey="all")
     # on a ax plot the points distribution in a linear space as a violinplot
     x_dist_ax_idx = 0
     xy_map = {mth: out.search_algorithm.make_x_y_from_history() for mth, out in mth_to_out.items()}
     linear_x = np.stack(
-        [np.linspace(0, 1, args.space_quantization)] * len(ml_pipeline_cls.search_space.dimensions),
+        [np.linspace(0, 1, args.space_quantization)] * len(search_space.dimensions),
         axis=1
     )
-    ml_pipeline_cls.search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
-    x_1d_map = {mth: np.ravel(ml_pipeline_cls.search_space.reducer_transform(xy[0], k=1)) for mth, xy in xy_map.items()}
+    search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
+    x_1d_map = {mth: np.ravel(search_space.reducer_transform(xy[0], k=1)) for mth, xy in xy_map.items()}
     x_1d_map_values = [x_1d_map[mth] for mth in mth_to_out.keys()]
     axes[x_dist_ax_idx].violinplot(x_1d_map_values, showmeans=True, showmedians=False, vert=False)
     # axes[x_dist_ax_idx].set_yticks(range(1, len(mth_to_out) + 1))
@@ -332,6 +368,7 @@ def plot_dists_over_itr(
         mth_to_out,
         mth_to_color,
         args,
+        search_space,
 ):
     n_running_pts = 6
     half_window = n_running_pts // 2
@@ -340,12 +377,12 @@ def plot_dists_over_itr(
     x_dist_ax_idx = 0
     xy_map = {mth: out.search_algorithm.make_x_y_from_history() for mth, out in mth_to_out.items()}
     linear_x = np.stack(
-        [np.linspace(0, 1, args.space_quantization)] * len(ml_pipeline_cls.search_space.dimensions),
+        [np.linspace(0, 1, args.space_quantization)] * len(search_space.dimensions),
         axis=1
     )
-    ml_pipeline_cls.search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
+    search_space.fit_reducer(linear_x, k=1, if_not_fitted=True)
     x_1d_map = {
-        mth: np.ravel(ml_pipeline_cls.search_space.reducer_transform(xy[0], k=1))
+        mth: np.ravel(search_space.reducer_transform(xy[0], k=1))
         for mth, xy in xy_map.items()
     }
     # compute the cumulative values of the 1d map
@@ -422,8 +459,27 @@ def plot_dists_over_itr(
     # plt.show()
 
 
+def get_reference_point(
+        ml_pipeline_cls: Type[MlpPipeline],
+        x_train, x_test, y_train, y_test,
+        **kwargs
+) -> hps.TrialPoint:
+    hyperparameters = ml_pipeline_cls.get_default_hyperparameters(**kwargs)
+    pipeline = ml_pipeline_cls(
+        dataset=(x_train, y_train),
+        hyperparameters=hyperparameters,
+        **kwargs
+    )
+    pipeline.run(dataset=(x_train, y_train), **kwargs)
+    return hps.TrialPoint(
+        point=hyperparameters,
+        value=pipeline.get_score(x_test, y_test)
+    )
+
+
 def main():
     args = parse_args()
+    args_to_json(args, os.path.join(os.path.dirname(__file__), args.save_dirname, "args.json"))
     np.random.seed(42)
     x_train, x_test, y_train, y_test = get_and_plot_dataset()
     mth_to_main_func = OrderedDict({
@@ -433,10 +489,13 @@ def main():
         "SVR": svr_main,
         "RandomSearch": random_search_main,
     })
+    mth_to_main_func = {mth: main_func for mth, main_func in mth_to_main_func.items() if mth in args.methods}
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     mth_to_color = {mth: color for mth, color in zip(mth_to_main_func.keys(), colors)}
     mth_to_out = {}
     ml_pipeline_cls = MlpPipeline
+    search_space = ml_pipeline_cls.get_search_space(dimensions=args.dimensions)
+    print(f"Search space: {search_space}")
     if args.warmup_rn_history > 0:
         rn_out = random_search_main(
             x_train, x_test, y_train, y_test,
@@ -446,8 +505,13 @@ def main():
             pipeline_name="rn_warmup",
             plot=False,
             save_dirname=args.save_dirname,
+            dimensions=args.dimensions,
+            search_space=search_space,
         )
-
+    initial_point = get_reference_point(ml_pipeline_cls, x_train, x_test, y_train, y_test, dimensions=args.dimensions)
+    print(f"Initial point: {initial_point}")
+    initial_history = hps.SearchHistory([initial_point])
+    initial_history.to_json(os.path.join(os.path.dirname(__file__), args.save_dirname, "initial_history.json"))
     for mth, main_func in mth_to_main_func.items():
         out = main_func(
             x_train, x_test, y_train, y_test,
@@ -464,12 +528,20 @@ def main():
             n_trials=args.n_trials,
             warmup_trials=args.warmup_trials,
             warmup_history=rn_out.history,
+            history=deepcopy(initial_history),
+            dimensions=args.dimensions,
+            search_space=search_space,
             save_dirname=args.save_dirname,
         )
         mth_to_out[mth] = out
 
-    plot_violin_plot(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args)
-    plot_dists_over_itr(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args)
+    hps.tools.to_json(
+        deepcopy(mth_to_out),
+        os.path.join(os.path.dirname(__file__), args.save_dirname, "mth_to_out.json")
+    )
+
+    plot_violin_plot(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args, search_space)
+    plot_dists_over_itr(ml_pipeline_cls, mth_to_main_func, mth_to_out, mth_to_color, args, search_space)
     plt.show()
 
 
