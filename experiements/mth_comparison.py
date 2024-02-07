@@ -536,7 +536,7 @@ def main():
         mth_to_out[mth] = out
 
     hps.tools.to_json(
-        mth_to_out,
+        deepcopy(mth_to_out),
         os.path.join(os.path.dirname(__file__), args.save_dirname, "mth_to_out.json")
     )
 
